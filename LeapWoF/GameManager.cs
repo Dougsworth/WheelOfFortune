@@ -110,7 +110,7 @@ namespace LeapWoF
             }
             else
             {
-                outputProvider.WriteLine("Incorrect solution. Try again.");
+                outputProvider.WriteLine("Incorrect solution. Try again :(.");
             }
         }
     }
