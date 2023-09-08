@@ -6,111 +6,112 @@ namespace LeapWoF
 {
     public class GameManager
     {
+        // Fields to handle user input and output. These can be console-based or any other implementation of the interfaces.
         private IInputProvider inputProvider;
         private IOutputProvider outputProvider;
 
-        private readonly string TemporaryPuzzle = "Hello world";
-        private string DisplayPuzzle;
+        // The puzzle string that players will try to guess.
+        private readonly string Puzzle = "Hello world";
+        // This string represents the puzzle as shown to the player, with unsolved letters replaced by underscores.
+        private string PuzzleDisplay;
+        // A list to keep track of letters the player has already guessed.
+        public List<string> GuessedLetters = new List<string>();
 
-        public List<string> charGuessList = new List<string>();
-
+        // Default constructor: Initializes the game with console-based input and output providers.
         public GameManager() : this(new ConsoleInputProvider(), new ConsoleOutputProvider()) { }
 
-        public GameManager(IInputProvider inputProvider, IOutputProvider outputProvider)
+        // Overloaded constructor: Allows for custom input and output providers.
+        public GameManager(IInputProvider input, IOutputProvider output)
         {
-            this.inputProvider = inputProvider ?? throw new ArgumentNullException(nameof(inputProvider));
-            this.outputProvider = outputProvider ?? throw new ArgumentNullException(nameof(outputProvider));
+            // If the provided inputProvider is null, throw an exception.
+            inputProvider = input ?? throw new ArgumentNullException(nameof(input));
+            // If the provided outputProvider is null, throw an exception.
+            outputProvider = output ?? throw new ArgumentNullException(nameof(output));
         }
 
+        // This method starts the game. It displays a welcome message and then enters a loop to handle player turns.
         public void StartGame()
         {
-            InitGame();
-            while (true)
-            {
-                PerformSingleTurn();
-            }
+            WelcomePlayer();
+            // Infinite loop to keep the game running until the player decides to exit or solves the puzzle.
+            while (true) PlayTurn();
         }
 
-        private void InitGame()
+        // Display a welcome message and initialize the puzzle display.
+        private void WelcomePlayer()
         {
             outputProvider.WriteLine("Welcome to Wheel of Fortune!");
-            DisplayPuzzle = new string('_', TemporaryPuzzle.Length);
-            DrawPuzzle();
+            // Initialize the PuzzleDisplay with underscores for each letter in the Puzzle.
+            PuzzleDisplay = new string('_', Puzzle.Length);
+            ShowPuzzle();
         }
 
-        private void PerformSingleTurn()
+        // Handle a single turn in the game, allowing the player to guess a letter or attempt to solve the puzzle.
+        private void PlayTurn()
         {
-            outputProvider.WriteLine("Type 1 to guess a letter, 2 to solve the puzzle");
-            var action = inputProvider.Read();
-            switch (action)
-            {
-                case "1":
-                    GuessLetter();
-                    break;
-                case "2":
-                    Solve();
-                    break;
-            }
+            outputProvider.WriteLine("1: Guess a letter | 2: Solve the puzzle");
+            var choice = inputProvider.Read();
+            if (choice == "1") GuessLetter();
+            else if (choice == "2") SolvePuzzle();
         }
 
-        private void DrawPuzzle()
+        // Display the current state of the puzzle to the player.
+        private void ShowPuzzle()
         {
-            outputProvider.WriteLine(DisplayPuzzle);
+            outputProvider.WriteLine(PuzzleDisplay);
         }
 
+        // Handle the logic for when a player tries to guess a letter.
         private void GuessLetter()
         {
-            outputProvider.Write("Please guess a letter: ");
-            var guess = inputProvider.Read().ToUpper();
+            outputProvider.Write("Guess a letter: ");
+            var letter = inputProvider.Read().ToUpper();
 
-            if (guess.Length != 1 || !char.IsLetter(guess[0]))
+            // Check if the player has already guessed this letter.
+            if (GuessedLetters.Contains(letter))
             {
-                outputProvider.WriteLine("Please enter a single letter.");
+                outputProvider.WriteLine("Already guessed this letter.");
                 return;
             }
 
-            if (charGuessList.Contains(guess))
-            {
-                outputProvider.WriteLine("You've already guessed this letter.");
-                return;
-            }
-
-            charGuessList.Add(guess);
-
-            bool letterFound = false;
-            for (int i = 0; i < TemporaryPuzzle.Length; i++)
-            {
-                if (TemporaryPuzzle[i].ToString().ToUpper() == guess)
-                {
-                    DisplayPuzzle = DisplayPuzzle.Remove(i, 1).Insert(i, TemporaryPuzzle[i].ToString());
-                    letterFound = true;
-                }
-            }
-
-            if (letterFound)
-            {
-                outputProvider.WriteLine($"Correct! '{guess}' is in the puzzle.");
-            }
-            else
-            {
-                outputProvider.WriteLine($"Sorry, '{guess}' is not in the puzzle.");
-            }
-
-            DrawPuzzle();
+            // Add the guessed letter to the list of guessed letters.
+            GuessedLetters.Add(letter);
+            UpdatePuzzleDisplay(letter);
         }
 
-        private void Solve()
+        // Update the displayed puzzle based on the player's letter guess.
+        private void UpdatePuzzleDisplay(string letter)
         {
-            outputProvider.Write("Please enter your solution: ");
-            var guess = inputProvider.Read();
-            if (guess.Equals(TemporaryPuzzle, StringComparison.OrdinalIgnoreCase))
+            bool found = false;
+            // Iterate through the Puzzle to check if the guessed letter is present.
+            for (int i = 0; i < Puzzle.Length; i++)
             {
-                outputProvider.WriteLine("Congratulations! You've solved the puzzle :))))).");
-                Environment.Exit(0);  // Exit the game after solving the puzzle
+                if (Puzzle[i].ToString().ToUpper() == letter)
+                {
+                    // If the letter is found, update the PuzzleDisplay to show the letter in the correct position.
+                    PuzzleDisplay = PuzzleDisplay.Remove(i, 1).Insert(i, Puzzle[i].ToString());
+                    found = true;
+                }
+            }
+            // Provide feedback to the player based on whether the guessed letter was in the puzzle.
+            outputProvider.WriteLine(found ? $"Found '{letter}'!" : $"No '{letter}' found.");
+            ShowPuzzle();
+        }
+
+        // Handle the logic for when a player tries to solve the puzzle.
+        private void SolvePuzzle()
+        {
+            outputProvider.Write("Your solution: ");
+            var solution = inputProvider.Read();
+            // Check if the player's solution matches the Puzzle, ignoring case.
+            if (solution.Equals(Puzzle, StringComparison.OrdinalIgnoreCase))
+            {
+                outputProvider.WriteLine("You solved it!");
+                Environment.Exit(0);  // Exit the game after solving the puzzle.
             }
             else
             {
-                outputProvider.WriteLine("Incorrect solution. Try again :(.");
+                outputProvider.WriteLine("Try again.");
             }
         }
     }
